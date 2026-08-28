@@ -24,27 +24,28 @@ open "build/Screen Timer.app"
 ## Install
 
 ```sh
-./build.sh
-pkill -f "Screen Timer.app"                       # if an older copy is running
-cp -R "build/Screen Timer.app" /Applications/
-open "/Applications/Screen Timer.app"
+./install.sh
 ```
+
+This quits any running copy, rebuilds, copies the bundle to
+`/Applications`, registers it as a login item, and relaunches it. It is safe to
+re-run to update an existing install.
 
 The app is ad-hoc signed by `build.sh`. Locally built bundles are not
 quarantined, so Gatekeeper does not prompt.
 
-## Run at login
-
-Use System Settings > General > Login Items & Extensions > Open at Login > `+`,
-and pick `/Applications/Screen Timer.app`. Or from a terminal:
+Registering the login item needs automation access to System Events. macOS
+prompts for this the first time; if it is denied, `install.sh` reports it and
+finishes the rest of the install. To add the entry manually, or by hand later,
+use System Settings > General > Login Items & Extensions > Open at Login > `+`,
+and pick `/Applications/Screen Timer.app`. The equivalent command is:
 
 ```sh
 osascript -e 'tell application "System Events" to make login item at end \
   with properties {path:"/Applications/Screen Timer.app", hidden:false}'
 ```
 
-macOS asks once to let the terminal control System Events. To check or remove
-the entry:
+To check or remove the entry:
 
 ```sh
 osascript -e 'tell application "System Events" to get the name of every login item'
@@ -63,10 +64,12 @@ The menu bar item opens a menu with:
   menu bar item shows the time next to its icon, so the number is never on
   screen in two places at once.
 - **Position**, a submenu for the four screen corners.
+- **Size**: small, medium, or large, as 6%, 10%, or 15% of the screen height.
+- **Transparency**: low, medium, or high, as 0.45, 0.30, or 0.16 opacity.
 - **Quit Screen Timer**.
 
-The app has no Dock icon (`LSUIElement`). The overlay's on/off state and corner
-are stored in `UserDefaults` and restored on launch.
+The app has no Dock icon (`LSUIElement`). The overlay's on/off state, corner,
+size, and transparency are stored in `UserDefaults` and restored on launch.
 
 ## How the time is measured
 
@@ -86,15 +89,16 @@ last 14 days are kept in storage. The total resets at local midnight.
 
 ## Configuration
 
-Constants at the top of `OverlayController` in `Sources/Overlay.swift`:
+Size and transparency are set from the menu. The values behind each choice are
+in `OverlaySize.fontScale` and `OverlayTransparency.alpha` in
+`Sources/Overlay.swift`. Layout constants are at the top of `OverlayController`
+in the same file:
 
 | Constant | Default | Effect |
 | --- | --- | --- |
-| `fontScale` | `0.10` | Font size as a fraction of the screen height |
-| `restingAlpha` | `0.45` | Overlay opacity when not hovered |
 | `horizontalMargin` | `16` | Gap from the digits to the left or right screen edge |
 | `verticalMargin` | `16` | Gap from the digits to the top or bottom screen edge |
-| `shadowInset` | `12` | Slack around the text so the shadow is not clipped |
+| `shadowInset` | `fontSize * 0.14` | Slack around the text so the shadow is not clipped |
 
 There is no plate or border behind the digits, just white text with a soft
 shadow, which is what keeps them readable over light content. Set `shadowBlur`
@@ -137,6 +141,7 @@ is applied to the `CGContext` in `draw(_:)`.
 
 ```
 build.sh                          swiftc invocation, Info.plist, ad-hoc signing
+install.sh                        quit, build, copy to /Applications, login item
 Sources/main.swift                accessory activation policy, no Dock icon
 Sources/AppDelegate.swift         status item, menu, timers, sleep/wake observers
 Sources/Overlay.swift             panel, Core Text rendering, corners, hover

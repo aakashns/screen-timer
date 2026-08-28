@@ -11,10 +11,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var tickTimer: Timer?
     private var refreshTimer: Timer?
 
-    private var positionItems: [OverlayCorner: NSMenuItem] = [:]
+    /// Submenu items keyed by the raw value they select, per submenu.
+    private var positionItems: [String: NSMenuItem] = [:]
+    private var sizeItems: [String: NSMenuItem] = [:]
+    private var transparencyItems: [String: NSMenuItem] = [:]
 
     private let enabledKey = "overlayEnabled"
     private let positionKey = "overlayCorner"
+    private let sizeKey = "overlaySize"
+    private let transparencyKey = "overlayTransparency"
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let defaults = UserDefaults.standard
@@ -24,9 +29,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if let raw = defaults.string(forKey: positionKey), let corner = OverlayCorner(rawValue: raw) {
             overlay.setCorner(corner)
         }
+        if let raw = defaults.string(forKey: sizeKey), let size = OverlaySize(rawValue: raw) {
+            overlay.setSize(size)
+        }
+        if let raw = defaults.string(forKey: transparencyKey), let value = OverlayTransparency(rawValue: raw) {
+            overlay.setTransparency(value)
+        }
         overlay.setEnabled(defaults.bool(forKey: enabledKey))
         toggleItem.state = overlay.isEnabled ? .on : .off
-        syncPositionItems()
+        syncOptionItems()
 
         tracker.refresh()
         update()
@@ -71,17 +82,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         toggleItem.target = self
         menu.addItem(toggleItem)
 
-        let positionItem = NSMenuItem(title: "Position", action: nil, keyEquivalent: "")
-        let positionMenu = NSMenu()
-        for corner in OverlayCorner.allCases {
-            let item = NSMenuItem(title: corner.title, action: #selector(setPosition(_:)), keyEquivalent: "")
-            item.target = self
-            item.representedObject = corner.rawValue
-            positionMenu.addItem(item)
-            positionItems[corner] = item
-        }
-        positionItem.submenu = positionMenu
-        menu.addItem(positionItem)
+        positionItems = addSubmenu(to: menu, title: "Position",
+                                   options: OverlayCorner.allCases.map { ($0.rawValue, $0.title) },
+                                   action: #selector(setPosition(_:)))
+        sizeItems = addSubmenu(to: menu, title: "Size",
+                               options: OverlaySize.allCases.map { ($0.rawValue, $0.title) },
+                               action: #selector(setSize(_:)))
+        transparencyItems = addSubmenu(to: menu, title: "Transparency",
+                                       options: OverlayTransparency.allCases.map { ($0.rawValue, $0.title) },
+                                       action: #selector(setTransparency(_:)))
         menu.addItem(.separator())
 
         let quit = NSMenuItem(title: "Quit Screen Timer", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -104,18 +113,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         update()
     }
 
+    /// - Returns: the created items, keyed by the raw value each one selects.
+    private func addSubmenu(to menu: NSMenu,
+                            title: String,
+                            options: [(raw: String, title: String)],
+                            action: Selector) -> [String: NSMenuItem] {
+        let submenu = NSMenu()
+        var items: [String: NSMenuItem] = [:]
+        for option in options {
+            let item = NSMenuItem(title: option.title, action: action, keyEquivalent: "")
+            item.target = self
+            item.representedObject = option.raw
+            submenu.addItem(item)
+            items[option.raw] = item
+        }
+        let parent = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        parent.submenu = submenu
+        menu.addItem(parent)
+        return items
+    }
+
     @objc private func setPosition(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String,
               let corner = OverlayCorner(rawValue: raw) else { return }
         overlay.setCorner(corner)
         UserDefaults.standard.set(raw, forKey: positionKey)
-        syncPositionItems()
+        syncOptionItems()
     }
 
-    private func syncPositionItems() {
-        for (corner, item) in positionItems {
-            item.state = corner == overlay.corner ? .on : .off
-        }
+    @objc private func setSize(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let size = OverlaySize(rawValue: raw) else { return }
+        overlay.setSize(size)
+        UserDefaults.standard.set(raw, forKey: sizeKey)
+        syncOptionItems()
+    }
+
+    @objc private func setTransparency(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let value = OverlayTransparency(rawValue: raw) else { return }
+        overlay.setTransparency(value)
+        UserDefaults.standard.set(raw, forKey: transparencyKey)
+        syncOptionItems()
+    }
+
+    private func syncOptionItems() {
+        for (raw, item) in positionItems { item.state = raw == overlay.corner.rawValue ? .on : .off }
+        for (raw, item) in sizeItems { item.state = raw == overlay.size.rawValue ? .on : .off }
+        for (raw, item) in transparencyItems { item.state = raw == overlay.transparency.rawValue ? .on : .off }
     }
 
     @objc private func powerStateChanged() {

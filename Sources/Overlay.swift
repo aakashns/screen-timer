@@ -16,6 +16,48 @@ enum OverlayCorner: String, CaseIterable {
     var isRight: Bool { self == .topRight || self == .bottomRight }
 }
 
+enum OverlaySize: String, CaseIterable {
+    case small, medium, large
+
+    var title: String {
+        switch self {
+        case .small: return "Small"
+        case .medium: return "Medium"
+        case .large: return "Large"
+        }
+    }
+
+    /// Font size as a fraction of the screen height.
+    var fontScale: CGFloat {
+        switch self {
+        case .small: return 0.06
+        case .medium: return 0.10
+        case .large: return 0.15
+        }
+    }
+}
+
+enum OverlayTransparency: String, CaseIterable {
+    case low, medium, high
+
+    var title: String {
+        switch self {
+        case .low: return "Low"
+        case .medium: return "Medium"
+        case .high: return "High"
+        }
+    }
+
+    /// Opacity when not hovered. More transparency means less opacity.
+    var alpha: CGFloat {
+        switch self {
+        case .low: return 0.45
+        case .medium: return 0.30
+        case .high: return 0.16
+        }
+    }
+}
+
 /// Borderless, click-through panel that floats above everything.
 final class OverlayPanel: NSPanel {
     init() {
@@ -89,16 +131,20 @@ final class DigitsView: NSView {
 
 final class OverlayController {
 
-    /// Font size as a fraction of the screen height.
-    private let fontScale: CGFloat = 0.10
     /// Gap from the digits to the left/right edge of the usable screen area.
     private let horizontalMargin: CGFloat = 16
     /// Gap from the digits to the top/bottom edge of the usable screen area.
     /// Equal to `horizontalMargin` so all four corners inset identically.
     private let verticalMargin: CGFloat = 16
-    private let restingAlpha: CGFloat = 0.45
-    /// Slack around the text so the drop shadow isn't clipped by the window.
-    private let shadowInset: CGFloat = 12
+    /// Slack around the text so the drop shadow isn't clipped by the window,
+    /// scaled with the font so a large size doesn't get a clipped shadow.
+    private var shadowInset: CGFloat { (fontSize * 0.14).rounded() }
+
+    private var restingAlpha: CGFloat { transparency.alpha }
+    private var fontSize: CGFloat {
+        let height = NSScreen.screens.first?.frame.height ?? 900
+        return max(24, (height * size.fontScale).rounded())
+    }
 
     private let panel = OverlayPanel()
     private let digits = DigitsView()
@@ -108,6 +154,8 @@ final class OverlayController {
 
     private(set) var isEnabled = false
     private(set) var corner: OverlayCorner = .topRight
+    private(set) var size: OverlaySize = .medium
+    private(set) var transparency: OverlayTransparency = .low
 
     init() {
         panel.contentView = digits
@@ -135,6 +183,17 @@ final class OverlayController {
         layout()
     }
 
+    func setSize(_ newSize: OverlaySize) {
+        size = newSize
+        layout()
+    }
+
+    func setTransparency(_ newTransparency: OverlayTransparency) {
+        transparency = newTransparency
+        // Don't fight the hover animation if the cursor is currently over it.
+        if !isHiddenByHover { panel.alphaValue = restingAlpha }
+    }
+
     // MARK: - Enable / disable
 
     func setEnabled(_ enabled: Bool) {
@@ -156,7 +215,8 @@ final class OverlayController {
     private func layout() {
         guard let screen = NSScreen.screens.first else { return }
 
-        let fontSize = max(24, (screen.frame.height * fontScale).rounded())
+        let fontSize = self.fontSize
+        let shadowInset = self.shadowInset
         // There's no backing plate, so a soft shadow is what keeps the digits
         // legible over light content.
         let blur = fontSize * 0.06
