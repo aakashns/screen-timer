@@ -93,7 +93,7 @@ Constants at the top of `OverlayController` in `Sources/Overlay.swift`:
 | `fontScale` | `0.10` | Font size as a fraction of the screen height |
 | `restingAlpha` | `0.45` | Overlay opacity when not hovered |
 | `horizontalMargin` | `16` | Gap from the digits to the left or right screen edge |
-| `verticalMargin` | `6` | Gap from the digits to the top or bottom screen edge |
+| `verticalMargin` | `16` | Gap from the digits to the top or bottom screen edge |
 | `shadowInset` | `12` | Slack around the text so the shadow is not clipped |
 
 There is no plate or border behind the digits, just white text with a soft
@@ -115,7 +115,21 @@ panel's frame.
 Margins are measured against the ink bounds of the digits, not the text box.
 `DigitsView` draws the line with Core Text and pins `CTLineGetImageBounds` to a
 known inset, because an `NSTextField` sized with `sizeToFit` carries the font's
-leading above the glyphs, which appears as an unwanted gap along the top edge.
+leading above the glyphs. At a 90 pt font that leading is about 39 pt, which
+appears as an unwanted gap along the top edge that no margin value can remove.
+
+The box is measured against a reference string with every digit replaced by a
+zero, rather than against the live time. Digit ink widths differ even in a
+monospaced-digit font, since a `1` inks about 13 pt narrower than a `0` at 90 pt,
+so anchoring on the live string's own ink bounds would shift the number sideways
+every time the minute changed. Digit advances are equal, so the real glyphs land
+inside the reference box.
+
+With `horizontalMargin` and `verticalMargin` equal, all four corners inset
+identically: the gap from the glyphs to the usable screen edge is the same on
+both axes, measured from the bottom of the menu bar at the top and from the top
+of the Dock at the bottom, since `visibleFrame` excludes both.
+
 Core Text ignores the `.shadow` attribute of an attributed string, so the shadow
 is applied to the `CGContext` in `draw(_:)`.
 

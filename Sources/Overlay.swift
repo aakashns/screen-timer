@@ -49,16 +49,24 @@ final class DigitsView: NSView {
 
     override var isFlipped: Bool { false }
 
+    /// - Parameter reference: a string of the same length used to measure the
+    ///   box, instead of measuring `attributed` itself. Digit shapes have
+    ///   different ink widths even in a monospaced-digit font (a `1` inks about
+    ///   13 pt narrower than a `0` at 90 pt), so measuring the live string would
+    ///   move the anchored edge every time the time changed.
     /// - Returns: the size the enclosing window should be.
-    func setContent(_ attributed: NSAttributedString, inset: CGFloat, shadowBlur: CGFloat) -> NSSize {
-        let line = CTLineCreateWithAttributedString(attributed)
+    func setContent(_ attributed: NSAttributedString,
+                    reference: NSAttributedString,
+                    inset: CGFloat,
+                    shadowBlur: CGFloat) -> NSSize {
         // Tight bounds around the drawn glyphs, relative to the text origin.
-        let ink = CTLineGetImageBounds(line, nil)
+        let ink = CTLineGetImageBounds(CTLineCreateWithAttributedString(reference), nil)
 
-        self.line = line
+        self.line = CTLineCreateWithAttributedString(attributed)
         self.shadowBlur = shadowBlur
         inkSize = ink.size
-        // Draw such that the ink rect's lower-left corner lands at (inset, inset).
+        // Draw such that the reference ink rect's lower-left corner lands at
+        // (inset, inset). Digit advances are equal, so the real glyphs line up.
         textOrigin = NSPoint(x: inset - ink.origin.x, y: inset - ink.origin.y)
         needsDisplay = true
 
@@ -86,7 +94,8 @@ final class OverlayController {
     /// Gap from the digits to the left/right edge of the usable screen area.
     private let horizontalMargin: CGFloat = 16
     /// Gap from the digits to the top/bottom edge of the usable screen area.
-    private let verticalMargin: CGFloat = 6
+    /// Equal to `horizontalMargin` so all four corners inset identically.
+    private let verticalMargin: CGFloat = 16
     private let restingAlpha: CGFloat = 0.45
     /// Slack around the text so the drop shadow isn't clipped by the window.
     private let shadowInset: CGFloat = 12
@@ -152,11 +161,17 @@ final class OverlayController {
         // legible over light content.
         let blur = fontSize * 0.06
 
-        let attributed = NSAttributedString(string: text, attributes: [
+        let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .semibold),
             .foregroundColor: NSColor.white,
-        ])
-        let size = digits.setContent(attributed, inset: shadowInset, shadowBlur: blur)
+        ]
+        // Measure against the same layout with every digit as a zero, so the
+        // anchored corner does not shift as the digits change.
+        let reference = String(text.map { $0.isNumber ? "0" : $0 })
+        let size = digits.setContent(NSAttributedString(string: text, attributes: attributes),
+                                     reference: NSAttributedString(string: reference, attributes: attributes),
+                                     inset: shadowInset,
+                                     shadowBlur: blur)
 
         // visibleFrame excludes the menu bar and the Dock, so the margins are
         // measured against the area actually available. The shadow inset is
