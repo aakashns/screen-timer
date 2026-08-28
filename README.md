@@ -2,7 +2,7 @@
 
 <img width="701" height="229" alt="image" src="https://github.com/user-attachments/assets/1bd751ca-7edb-49e0-b7c6-3620f68f4f02" />
 
-<img width="589" height="237" alt="image" src="https://github.com/user-attachments/assets/a6c7b653-f7ff-4c47-b4da-c2c905b8075b" />
+<img width="701" height="245" alt="image" src="https://github.com/user-attachments/assets/6e960b97-489a-417a-8067-d0651a5e8c4b" />
 
 
 A macOS menu bar app that displays how long the screen has been on today, as a
