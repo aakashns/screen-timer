@@ -65,7 +65,7 @@ The menu bar item opens a menu with:
   screen in two places at once.
 - **Position**, a submenu for the four screen corners.
 - **Size**: small, medium, or large, as 6%, 10%, or 15% of the screen height.
-- **Transparency**: low, medium, or high, as 0.45, 0.30, or 0.16 opacity.
+- **Transparency**: low, medium, or high, as 0.70, 0.45, or 0.25 opacity.
 - **Quit Screen Timer**.
 
 The app has no Dock icon (`LSUIElement`). The overlay's on/off state, corner,
@@ -97,7 +97,7 @@ in the same file:
 | Constant | Default | Effect |
 | --- | --- | --- |
 | `horizontalMargin` | `16` | Gap from the digits to the left or right screen edge |
-| `verticalMargin` | `16` | Gap from the digits to the top or bottom screen edge |
+| `verticalMargin` | `20` | Gap from the digits to the top or bottom screen edge |
 | `shadowInset` | `fontSize * 0.14` | Slack around the text so the shadow is not clipped |
 
 There is no plate or border behind the digits, just white text with a soft
@@ -129,10 +129,10 @@ so anchoring on the live string's own ink bounds would shift the number sideways
 every time the minute changed. Digit advances are equal, so the real glyphs land
 inside the reference box.
 
-With `horizontalMargin` and `verticalMargin` equal, all four corners inset
-identically: the gap from the glyphs to the usable screen edge is the same on
-both axes, measured from the bottom of the menu bar at the top and from the top
-of the Dock at the bottom, since `visibleFrame` excludes both.
+All four corners inset identically, by `horizontalMargin` on the x axis and
+`verticalMargin` on the y axis. The gap is measured from the bottom of the menu
+bar at the top and from the top of the Dock at the bottom, since `visibleFrame`
+excludes both.
 
 Core Text ignores the `.shadow` attribute of an attributed string, so the shadow
 is applied to the `CGContext` in `draw(_:)`.

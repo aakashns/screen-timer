@@ -51,9 +51,9 @@ enum OverlayTransparency: String, CaseIterable {
     /// Opacity when not hovered. More transparency means less opacity.
     var alpha: CGFloat {
         switch self {
-        case .low: return 0.45
-        case .medium: return 0.30
-        case .high: return 0.16
+        case .low: return 0.70
+        case .medium: return 0.45
+        case .high: return 0.25
         }
     }
 }
@@ -134,8 +134,9 @@ final class OverlayController {
     /// Gap from the digits to the left/right edge of the usable screen area.
     private let horizontalMargin: CGFloat = 16
     /// Gap from the digits to the top/bottom edge of the usable screen area.
-    /// Equal to `horizontalMargin` so all four corners inset identically.
-    private let verticalMargin: CGFloat = 16
+    /// Slightly larger than `horizontalMargin`, which reads as balanced because
+    /// the digits are wider than they are tall.
+    private let verticalMargin: CGFloat = 20
     /// Slack around the text so the drop shadow isn't clipped by the window,
     /// scaled with the font so a large size doesn't get a clipped shadow.
     private var shadowInset: CGFloat { (fontSize * 0.14).rounded() }
@@ -155,7 +156,7 @@ final class OverlayController {
     private(set) var isEnabled = false
     private(set) var corner: OverlayCorner = .topRight
     private(set) var size: OverlaySize = .medium
-    private(set) var transparency: OverlayTransparency = .low
+    private(set) var transparency: OverlayTransparency = .medium
 
     init() {
         panel.contentView = digits

@@ -19,11 +19,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let enabledKey = "overlayEnabled"
     private let positionKey = "overlayCorner"
     private let sizeKey = "overlaySize"
-    private let transparencyKey = "overlayTransparency"
+    /// Deliberately not "overlayTransparency". The scale was relabelled after
+    /// that key shipped: the old `low` (0.45) is now `medium`, and `low` is a new
+    /// more opaque step. Reading under a new key drops the stale value so an
+    /// existing install keeps the appearance it already had.
+    private let transparencyKey = "overlayTransparencyLevel"
+    private let legacyTransparencyKey = "overlayTransparency"
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let defaults = UserDefaults.standard
         defaults.register(defaults: [enabledKey: true])
+        defaults.removeObject(forKey: legacyTransparencyKey)
 
         setUpStatusItem()
         if let raw = defaults.string(forKey: positionKey), let corner = OverlayCorner(rawValue: raw) {
