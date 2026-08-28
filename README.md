@@ -1,5 +1,7 @@
 # Screen Timer
 
+<img width="701" height="229" alt="image" src="https://github.com/user-attachments/assets/1bd751ca-7edb-49e0-b7c6-3620f68f4f02" />
+
 A macOS menu bar app that displays how long the screen has been on today, as a
 large semi-transparent `HH:MM` overlay in a corner of the screen.
 
