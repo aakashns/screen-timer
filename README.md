@@ -71,6 +71,9 @@ The menu bar item opens a menu with:
 - **Position**, a submenu for the four screen corners.
 - **Size**: small, medium, or large, as 6%, 10%, or 15% of the screen height.
 - **Transparency**: low, medium, or high, as 0.70, 0.45, or 0.25 opacity.
+- **Reset Timer**, which drops today's total and starts counting from now. The
+  reset instant is remembered, so it survives a restart and `pmset` will not
+  re-add the time before it.
 - **Quit Screen Timer**.
 
 The app has no Dock icon (`LSUIElement`). The overlay's on/off state, corner,
@@ -91,6 +94,28 @@ Two sources, in `Sources/ScreenTimeTracker.swift`. The larger of the two wins:
 Deltas larger than five seconds are discarded from the live count, since they
 indicate the process was suspended rather than the screen being on. Only the
 last 14 days are kept in storage. The total resets at local midnight.
+
+### Closing an interval that never logged its end
+
+`Display is turned off` is not written reliably. A shutdown or a deep sleep can
+swallow it, leaving an `on` event with no matching `off` — so a laptop closed
+at 21:27 and booted at 10:59 the next morning reads as a display that was on
+all night. Three further signals close the interval:
+
+- `Sleep` and `DarkWake` lines, which both mean the screen is off.
+- `Start` (powerd restarting), which marks a boot. The stretch leading up to it
+  is downtime and is never credited.
+- A gap in the log itself. Every line is a heartbeat from a running `powerd`,
+  so silence longer than `downtimeGap` (45 minutes) means the machine was gone,
+  and the display is treated as off for the whole gap. While the machine merely
+  sleeps, `powerd` still wakes for maintenance and logs every 15-18 minutes, so
+  routine gaps stay well under the threshold.
+
+The gap check is the one that catches an overnight shutdown, because a boot is
+often logged a second *after* the `Display is turned on` that follows it. It
+needs a timestamp for every line rather than just the display events, which is
+why `ScreenTimeTracker.timestamp` reads the fixed-width date prefix directly
+instead of going through `DateFormatter`.
 
 ## Configuration
 

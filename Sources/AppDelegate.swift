@@ -99,6 +99,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                                        action: #selector(setTransparency(_:)))
         menu.addItem(.separator())
 
+        let reset = NSMenuItem(title: "Reset Timer", action: #selector(resetTimer), keyEquivalent: "r")
+        reset.target = self
+        menu.addItem(reset)
+
         let quit = NSMenuItem(title: "Quit Screen Timer", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
 
@@ -161,6 +165,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         overlay.setTransparency(value)
         UserDefaults.standard.set(raw, forKey: transparencyKey)
         syncOptionItems()
+    }
+
+    @objc private func resetTimer() {
+        tracker.reset()
+        update()
     }
 
     private func syncOptionItems() {
